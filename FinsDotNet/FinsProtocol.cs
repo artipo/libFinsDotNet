@@ -399,6 +399,9 @@ namespace FinsDotNet
 
         // Size of receive buffer.  
         private int ReceiveBufferSize = 0;
+        
+        // Socket waiting timeout
+        private int finsClientTimeout = 1000;
 
         #endregion
 
@@ -556,6 +559,8 @@ namespace FinsDotNet
                 remoteEP = new IPEndPoint(ipAddress, port);
 
                 finsClient = new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+                finsClient.SendTimeout = finsClientTimeout;
+                finsClient.ReceiveTimeout = finsClientTimeout;
             } catch (Exception e) {
                 Console.WriteLine(e.ToString());
                 currentStatus = (int)FinsProtocol.ErrorCodes.errSocketCreation;
@@ -657,6 +662,8 @@ namespace FinsDotNet
             buffer = new byte[readSize * 2];
             currentStatus = SendFinsCommand(finsClient, 0x01, 0x01, text, out tmpBuf);
 
+            if (currentStatus != 0) return currentStatus;
+            
             for (int i = 0; i < buffer.Length; i++) {
                 buffer[i] = tmpBuf[i];
             }
@@ -747,7 +754,7 @@ namespace FinsDotNet
                 int byteRead;
                 byteRead = client.Receive(data);
 
-                if (t.ElapsedMilliseconds > 5000) {
+                if (t.ElapsedMilliseconds > finsClientTimeout) {
                     t.Stop();
                     t = null;
 
